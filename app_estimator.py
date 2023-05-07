@@ -1,88 +1,38 @@
-""" This is a flask application called 'Estimator'
-with both UI and API components
-"""
+import json
+from flask import Flask, request, jsonify, render_template
 
-# import necessary libraries
-import os
-from flask import (
-    Flask,
-    render_template,
-    jsonify,
-    request
-)
-
-#################################################
-# Flask Setup
-#################################################
+# Flask setup
 app = Flask(__name__)
-
-#################################################
-# Database Setup
-#################################################
-
-from flask_sqlalchemy import SQLAlchemy
-# 'or' allows us to later switch from 'sqlite' to an external database like 'postgres' easily
-# os.environ is used to access 'environment variables' from the operating system
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', '') or "sqlite:///db.sqlite"
-
-# Remove tracking modifications
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db = SQLAlchemy(app)
-
-# TODO: Add data models if needed
-
-with app.app_context():
-    db.create_all()
-
-#################################################
-# Model Setup
-#################################################
-
-from joblib import load
-model_path = os.environ.get('MODEL_PATH', '') or "model_LinearRegression.joblib"
-print("Loading model...")
-model = load(model_path)
-
-#################################################
-# Web User Interface - Front End
-#################################################
-# note that UI routes return a html response
-# you can add as many html pages as you need
-# below is an example to get you started...
 
 # create route that renders index.html template
 @app.route("/")
 def home():
     return render_template("insurance_estimator.html")
 
-# TODO: Add more routes if needed
+import joblib
 
-#################################################
-# API - Back End
-#################################################
-# we will use '/api/..' for our api within flask application
-# note that api returns a JSON response
-# you can add as many API routes as you need
-# below is an example to get you started...
+# Load the machine learning model from the .joblib file
+model = joblib.load('model_LinearRegression.joblib')
 
-@app.route("/prediction", methods=["POST"])
-def predict():
-    labels = ['setosa', 'versicolor', 'virginica']
-    index = model.predict(
-        [
-            [
-            float(request.form["Sepal length"]),
-            float(request.form["Sepal width"]),
-            float(request.form["Petal length"]),
-            float(request.form["Petal width"]),
-            ],
-        ]
-    )[0]
-    return jsonify(f"Predicted Iris Species: {labels[index]}")
+# create route for model prediction
+@app.route('/estimator', methods = ['POST'])
 
+def estimator():
+    # Get the client data from "insurance_estimator.html"
+    data = json.loads(request.data)
 
-if __name__ == "__main__":
+    # transform data to feature to fit the model
+    features = [[data["age"], data["bmi"], data["children"], data["female"], data["male"], data['No'], data["Yes"],  \
+                 data['Diabetes'], data['Heart_disease'], data['High_blood_pressure'], data['None'], \
+                 data['Family_Diabetes'], data['Family_Heart_disease'], data['Family_High_blood_pressure'], \
+                 data['Family_None'], data['Frequently'], data['exercise_Never'], data['Occasionally'], data['Rarely'], \
+                 data['Blue_collar'], data['Student'], data['Unemployed'], data['White_collar'], \
+                 data['Basic'], data['Premium'], data['Standard']]] 
 
-    # run the flask app
-    app.run()
+    # make predition by using model
+    estimator = model.predict (features)
+
+    return jsonify({'prediction': estimator[0]})
+
+if __name__ == '__main__':
+  app.run()
