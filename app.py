@@ -1,8 +1,6 @@
 import json
 import pandas as pd
 
-from flask_session import Session
-
 # import necessary libraries
 import os
 from flask import (
@@ -19,7 +17,6 @@ app = Flask(__name__)
 # Database Setup
 #################################################
 
-from flask_sqlalchemy import SQLAlchemy
 # 'or' allows us to later switch from 'sqlite' to an external database like 'postgres' easily
 # os.environ is used to access 'environment variables' from the operating system
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', '') or "sqlite:///db.sqlite"
@@ -27,21 +24,30 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', '') or "s
 # Remove tracking modifications
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)
+# pdb = SQLAlchemy(app)
 
-class Pet(db.Model):
-    __tablename__ = 'pets'
+# class Pet(db.Model):
+    # __tablename__ = 'pets'
 
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(64))
-    lat = db.Column(db.Float)
-    lon = db.Column(db.Float)
+    # id = db.Column(db.Integer, primary_key=True)
+    # name = db.Column(db.String(64))
+    # lat = db.Column(db.Float)
+    # lon = db.Column(db.Float)
 
-    def __repr__(self):
-        return '<Pet %r>' % (self.name)
+    # def __repr__(self):
+        # return '<Pet %r>' % (self.name)
 
-with app.app_context():
-    db.create_all()
+# with app.app_context():
+    # db.create_all()
+
+#################################################
+# Model Setup
+#################################################
+
+from joblib import load
+model_path = os.environ.get('MODEL_PATH', '') or "model_DecisionTreeRegressor.joblib"
+print("Loading model...")
+model = load(model_path)
 
 # create route that renders index.html template
 @app.route("/")
@@ -137,17 +143,11 @@ def estimator():
           'coverage_level_Standard': coverage_level_Standard,
           'coverage_level_Basic': coverage_level_Basic
       }
-    
-      json_string = json.dumps(client_data)
-      print(json_string)
 
-      # data = client_data_db(age=client_age, gender=gender, bmi=bmi, children=children_no, smoker=smoker, medical_history=medical_history,family_medical_history=family_medical_history, exercise_frequency=exercise_frequency, occupation=occupation, coverage_level=coverage_level)
-
-      # pet = client_data_db(age=client_age, gender=lat, lon=lon)
-      # db.session.add(pet)
-      # db.session.commit()
-
-      return json_string
+      client_data_list = list(client_data.values())
+      
+      index1 = model.predict([client_data_list])
+      return jsonify(f"Predicted Insurance Premium: {index1}") 
     return render_template("insurance_estimator.html")
 
 if __name__ == '__main__':
