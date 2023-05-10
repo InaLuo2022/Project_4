@@ -1,5 +1,6 @@
 import json
 import pandas as pd
+import numpy as np
 
 # import necessary libraries
 import os
@@ -17,6 +18,7 @@ app = Flask(__name__)
 # Database Setup
 #################################################
 
+from flask_sqlalchemy import SQLAlchemy
 # 'or' allows us to later switch from 'sqlite' to an external database like 'postgres' easily
 # os.environ is used to access 'environment variables' from the operating system
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', '') or "sqlite:///db.sqlite"
@@ -24,21 +26,21 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', '') or "s
 # Remove tracking modifications
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# pdb = SQLAlchemy(app)
+db = SQLAlchemy(app)
 
-# class Pet(db.Model):
-    # __tablename__ = 'pets'
+class client_info(db.Model):
+    __tablename__ = 'clients'
 
-    # id = db.Column(db.Integer, primary_key=True)
-    # name = db.Column(db.String(64))
-    # lat = db.Column(db.Float)
-    # lon = db.Column(db.Float)
+    id = db.Column(db.Integer, primary_key=True)
+    insurance_premium = db.Column(db.Float)
+    insurance_standard = db.Column(db.Float)
+    insurance_basic = db.Column(db.Float)
 
-    # def __repr__(self):
-        # return '<Pet %r>' % (self.name)
+    def __repr__(self):
+        return '<client %r>' % (self.name)
 
-# with app.app_context():
-    # db.create_all()
+with app.app_context():
+    db.create_all()
 
 #################################################
 # Model Setup
@@ -52,7 +54,7 @@ model = load(model_path)
 # create route that renders index.html template
 @app.route("/")
 def home():
-    return render_template("insurance_estimator.html")
+    return render_template("homepage.html")
 
 @app.route("/estimator", methods = ['GET','POST'])
 def estimator(): 
@@ -111,44 +113,43 @@ def estimator():
       coverage_level_Standard = 1 if coverage_level == "Standard" else 0
       coverage_level_Basic = 1 if coverage_level == "Basic" else 0
 
-      client_data = {
-          "age": client_age,
-          "bmi": bmi,
-          "children": children_no,
-          "gender_female": gender_female,
-          "gender_male": gender_male,
-          'smoker_no': smoker_no,
-          'smoker_yes': smoker_yes,
-          'region_northeast': region_northeast,
-          'region_northwest': region_northwest,
-          'region_southeast': region_southeast,
-          'region_southwest': region_southwest,
-          'medical_history_Diabetes' : medical_history_Diabetes,
-          'medical_history_Heart_disease': medical_history_Heart_disease,
-          'medical_history_High_blood_pressure': medical_history_High_blood_pressure,
-          'medical_history_None' : medical_history_None,
-          'family_medical_history_Diabetes' : family_medical_history_Diabetes,
-          'family_medical_history_Heart_disease': family_medical_history_Heart_disease,
-          'family_medical_history_High_blood_pressure': family_medical_history_High_blood_pressure,
-          'family_medical_history_None' : family_medical_history_None,
-          'exercise_frequency_Frequently': exercise_frequency_Frequently,
-          'exercise_frequency_Never': exercise_frequency_Never,
-          'exercise_frequency_Occasionally': exercise_frequency_Occasionally,
-          'exercise_frequency_Rarely': exercise_frequency_Rarely,
-          'occupation_Blue_collar': occupation_Blue_collar,
-          'occupation_Student': occupation_Student,
-          'occupation_Unemployed': occupation_Unemployed,
-          'occupation_White_collar': occupation_White_collar,
-          'coverage_level_Premium': coverage_level_Premium,
-          'coverage_level_Standard': coverage_level_Standard,
-          'coverage_level_Basic': coverage_level_Basic
-      }
+      client_data_list_Basic = [client_age, bmi, children_no, gender_female, gender_male, smoker_no, smoker_yes, region_northeast, region_northwest, region_southeast, region_southwest,\
+                                 medical_history_Diabetes, medical_history_Heart_disease, medical_history_High_blood_pressure, medical_history_None, family_medical_history_Diabetes, \
+                                 family_medical_history_Heart_disease, family_medical_history_High_blood_pressure, family_medical_history_None, exercise_frequency_Frequently, \
+                                 exercise_frequency_Never, exercise_frequency_Occasionally, exercise_frequency_Rarely, occupation_Blue_collar, occupation_Student, occupation_Unemployed, \
+                                 occupation_White_collar, 1, 0, 0]
 
-      client_data_list = list(client_data.values())
+      client_data_list_Standard = [client_age, bmi, children_no, gender_female, gender_male, smoker_no, smoker_yes, region_northeast, region_northwest, region_southeast, region_southwest,\
+                                 medical_history_Diabetes, medical_history_Heart_disease, medical_history_High_blood_pressure, medical_history_None, family_medical_history_Diabetes, \
+                                 family_medical_history_Heart_disease, family_medical_history_High_blood_pressure, family_medical_history_None, exercise_frequency_Frequently, \
+                                 exercise_frequency_Never, exercise_frequency_Occasionally, exercise_frequency_Rarely, occupation_Blue_collar, occupation_Student, occupation_Unemployed, \
+                                 occupation_White_collar, 0, 0, 1]
+
+      client_data_list_Premium = [client_age, bmi, children_no, gender_female, gender_male, smoker_no, smoker_yes, region_northeast, region_northwest, region_southeast, region_southwest,\
+                                 medical_history_Diabetes, medical_history_Heart_disease, medical_history_High_blood_pressure, medical_history_None, family_medical_history_Diabetes, \
+                                 family_medical_history_Heart_disease, family_medical_history_High_blood_pressure, family_medical_history_None, exercise_frequency_Frequently, \
+                                 exercise_frequency_Never, exercise_frequency_Occasionally, exercise_frequency_Rarely, occupation_Blue_collar, occupation_Student, occupation_Unemployed, \
+                                 occupation_White_collar, 0, 1, 0]
       
-      index1 = model.predict([client_data_list])
-      return jsonify(f"Predicted Insurance Premium: {index1}") 
+      # client_data_List = ([client_age, bmi, children_no, gender_female, gender_male, smoker_no, smoker_yes, region_northeast, region_northwest, region_southeast, region_southwest,\
+                                 # medical_history_Diabetes, medical_history_Heart_disease, medical_history_High_blood_pressure, medical_history_None, family_medical_history_Diabetes, \
+                                 # family_medical_history_Heart_disease, family_medical_history_High_blood_pressure, family_medical_history_None, exercise_frequency_Frequently, \
+                                 # exercise_frequency_Never, exercise_frequency_Occasionally, exercise_frequency_Rarely, occupation_Blue_collar, occupation_Student, occupation_Unemployed, \
+                                 # occupation_White_collar], [1, 0, 0], [0, 0, 1], [0, 1, 0])
+      
+      # client_data_List_basic_plan = (client_data_List[0], client_data_List[1])
+      
+      index1 = model.predict([client_data_list_Basic])
+      index2 = model.predict([client_data_list_Standard])
+      index3 = model.predict([client_data_list_Premium])
+      # index4 = model.predict([client_data_List_basic_plan])
+
+      response = jsonify(f"Predicted Insurance Basic: {index1}, Predicted Insurance Standard: {index2}, Predicted Insurance Premium:{index3}")
+
+      return response
     return render_template("insurance_estimator.html")
+
+# jsonify(f"Predicted Insurance Basic: {index1}, Predicted Insurance Standard: {index2}, Predicted Insurance Premium:{index3}")
 
 if __name__ == '__main__':
   app.run(debug=True)
