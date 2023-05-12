@@ -23,7 +23,7 @@ d3.json(url).then (function(response){
             y: yValue,
             type: 'bar',
             marker: {
-              color: 'rgb(52, 168, 83)' // Set the color of the bars
+              color: 'rgb(52, 83, 168)' // Set the color of the bars
             }
           };
           
@@ -33,7 +33,7 @@ d3.json(url).then (function(response){
             xaxis: {
               title: 'Insurance Plan',
               tickfont: {
-                size: 14,
+                size: 20,
                 color: 'rgb(107, 107, 107)'
               }
             },
